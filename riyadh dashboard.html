@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة الرياض</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --gold:#c9a24b;
+    --gold-light:#e6c974;
+    --panel-bg:rgba(8,12,20,0.4);
+    --panel-border:rgba(201,162,75,0.3);
+    --hilal-blue:#00529f;
+    --madrid-gold:#b89e5a;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{ width:100%; height:100%; overflow:hidden; font-family:'Tajawal', sans-serif; background:#05070c; color:#f2efe8; }
+  #app{ position:relative; width:100vw; height:100vh; }
+
+  #bg{
+    position:absolute; inset:-2% -2% -2% -2%; z-index:0;
+    background-image:url('https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/KAFD_seen_from_North_east_side_of_Riyadh_City.jpg/1920px-KAFD_seen_from_North_east_side_of_Riyadh_City.jpg');
+    background-size:cover; background-position:center;
+    transition: filter 2s ease;
+  }
+  #tint{ position:absolute; inset:0; z-index:1; transition: background 3s ease, opacity 2s ease; mix-blend-mode:multiply; }
+  #tint2{ position:absolute; inset:0; z-index:1; transition: background 3s ease, opacity 2s ease; }
+  #veil{ position:absolute; inset:0; z-index:2; background:linear-gradient(to top, rgba(4,6,10,0.85) 0%, rgba(4,6,10,0.4) 32%, rgba(4,6,10,0.08) 58%, rgba(4,6,10,0.02) 100%); }
+  .rain{ position:absolute; width:2px; height:16px; background:linear-gradient(to bottom, transparent, rgba(180,210,255,0.75)); animation: fall linear infinite; z-index:1; }
+  @keyframes fall{ 0%{ transform:translateY(-10vh); opacity:0;} 10%{opacity:1;} 100%{ transform:translateY(110vh); opacity:0.4;} }
+
+  #content{ position:relative; z-index:3; width:100%; height:100%; padding:2.2vh 2.2vw; display:flex; flex-direction:column; justify-content:space-between; }
+
+  #top-row{ display:flex; justify-content:space-between; align-items:flex-start; }
+  #weather-block{ display:flex; align-items:center; gap:0.6vw; }
+  #weather-icon{ font-size:2vw; }
+  #weather-temp{ font-size:1.5vw; font-weight:700; color:#fff; }
+  #weather-desc{ font-size:0.8vw; color:#d8d2c2; }
+  #clock-block{ text-align:left; }
+  #clock{ font-size:1.5vw; font-weight:900; color:#fff; letter-spacing:1px; line-height:1; text-shadow:0 2px 14px rgba(0,0,0,0.6); }
+  #ampm{ font-size:0.7vw; color:var(--gold-light); margin-left:0.3vw; }
+  #date-greg{ font-size:0.8vw; font-weight:500; color:#f2efe8; margin-top:0.3vh; }
+  #date-hijri{ font-size:0.68vw; font-weight:400; color:#cfc6b0; margin-top:0.1vh; }
+
+  #appdock{ position:absolute; top:50%; left:1.3vw; transform:translateY(-50%); z-index:4; display:flex; flex-direction:column; gap:0.75vh; }
+  .app-btn{
+    width:3.6vw; height:3.6vw; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    text-decoration:none; color:#fff; position:relative; cursor:pointer;
+    box-shadow:0 3px 10px rgba(0,0,0,0.45); border:1px solid rgba(255,255,255,0.15);
+    transition: transform 0.15s ease; overflow:hidden;
+  }
+  .app-btn:hover{ transform:scale(1.1); }
+  .app-btn svg{ width:58%; height:58%; }
+  .app-btn.prime{ background:#1F2E3C; }
+  .app-btn.prime svg{ width:68%; height:68%; }
+  .app-btn.youtube{ background:#fff; }
+  .app-btn.appletv{ background:#0b0b0d; }
+  .app-btn.osn{ background:radial-gradient(circle at 35% 30%, #8e2fc9, #2a1458); }
+  .app-btn.stremio{ background:#0b3d3a; }
+  .app-btn.hotiptv{ background:#c0392b; }
+  .app-btn .tip{
+    position:absolute; left:4vw; top:50%; transform:translateY(-50%); white-space:nowrap;
+    background:rgba(5,7,12,0.88); color:#e6c974; font-size:0.72vw; padding:0.3vh 0.7vw; border-radius:6px;
+    opacity:0; pointer-events:none; transition:opacity 0.2s ease;
+  }
+  .app-btn:hover .tip{ opacity:1; }
+  #toast{
+    position:absolute; bottom:6vh; left:50%; transform:translateX(-50%); z-index:6;
+    background:rgba(5,7,12,0.9); color:var(--gold-light); font-size:0.85vw; padding:0.8vh 1.4vw; border-radius:10px;
+    border:1px solid var(--panel-border); opacity:0; transition:opacity 0.3s ease; pointer-events:none;
+  }
+  #toast.show{ opacity:1; }
+
+  /* ---------------- LEAGUES OVERLAY ---------------- */
+  #leagues-overlay{
+    position:fixed; inset:0; z-index:20; background:rgba(4,6,10,0.97);
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  #lg-header{ display:flex; align-items:center; justify-content:space-between; padding:1.6vh 2vw 0.6vh; }
+  #lg-title{ font-size:1.3vw; font-weight:900; color:var(--gold-light); }
+  #lg-close{
+    width:2.2vw; height:2.2vw; border-radius:50%; background:var(--panel-bg); border:1px solid var(--panel-border);
+    color:#fff; font-size:1.1vw; display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  #lg-tabs{ display:flex; gap:0.6vw; padding:0.8vh 2vw; overflow-x:auto; flex-wrap:wrap; }
+  .lg-tab{
+    padding:0.7vh 1.1vw; border-radius:20px; font-size:0.8vw; font-weight:700; cursor:pointer; white-space:nowrap;
+    background:var(--panel-bg); border:1px solid var(--panel-border); color:#cfc6b0;
+  }
+  .lg-tab.active{ background:var(--gold); color:#141008; border-color:var(--gold); }
+  #lg-body{ flex:1; overflow-y:auto; padding:1vh 2vw 3vh; display:flex; flex-direction:column; gap:1.6vh; }
+  .lg-section-title{ font-size:0.95vw; font-weight:800; color:var(--gold-light); margin-bottom:0.6vh; border-right:3px solid var(--gold); padding-right:0.5vw; }
+  .lg-section{ background:var(--panel-bg); border:1px solid var(--panel-border); border-radius:12px; padding:1.2vh 1.2vw; }
+  .lg-note{ font-size:0.78vw; color:#a39b86; }
+
+  table.lg-table{ width:100%; border-collapse:collapse; font-size:0.78vw; }
+  table.lg-table th{ text-align:center; color:#a39b86; font-weight:600; padding:0.5vh 0.3vw; border-bottom:1px solid var(--panel-border); }
+  table.lg-table td{ text-align:center; color:#f2efe8; padding:0.5vh 0.3vw; border-bottom:1px solid rgba(255,255,255,0.06); }
+  table.lg-table td.team-name{ text-align:right; font-weight:700; }
+  table.lg-table tr.top4 td.rank{ color:#5ec47a; font-weight:900; }
+
+  .lg-fixture-list{ display:flex; flex-direction:column; gap:0.6vh; }
+  .lg-fixture{
+    display:flex; align-items:center; justify-content:space-between; gap:0.6vw;
+    background:rgba(255,255,255,0.03); border-radius:8px; padding:0.6vh 0.9vw; font-size:0.8vw;
+  }
+  .lg-fixture .teams{ display:flex; align-items:center; gap:0.5vw; }
+  .lg-fixture .score{ font-weight:900; color:var(--gold-light); min-width:3vw; text-align:center; }
+  .lg-fixture .when{ font-size:0.68vw; color:#a39b86; }
+
+  .lg-scorer-list{ display:flex; flex-direction:column; gap:0.4vh; }
+  .lg-scorer-row{ display:flex; justify-content:space-between; font-size:0.8vw; padding:0.3vh 0; border-bottom:1px solid rgba(255,255,255,0.05); }
+  .lg-scorer-row .goals{ color:var(--gold-light); font-weight:800; }
+
+  .app-btn.leagues{ background:linear-gradient(135deg,#1b3a2a,#0c1f16); }
+
+  #bottom-row{ display:flex; justify-content:space-between; align-items:flex-end; gap:1.4vw; }
+
+  #prayer-panel{
+    background:var(--panel-bg); border:1px solid var(--panel-border); border-radius:12px;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    padding:0.9vh 1.1vw;
+  }
+  #prayer-panel .label{ font-size:0.65vw; color:#9a9280; margin-bottom:0.15vh; }
+  #prayer-panel .next{ font-size:0.95vw; font-weight:700; color:var(--gold-light); }
+  #prayer-panel .next b{ color:#fff; }
+  #prayer-panel .iqama{ font-size:0.72vw; color:#d8d2c2; margin-top:0.2vh; }
+
+  #matches-block{ display:flex; flex-direction:column; gap:0.5vh; align-items:flex-end; }
+  .match-pill{
+    display:flex; align-items:center; gap:0.5vw;
+    background:var(--panel-bg); border:1px solid var(--panel-border); border-radius:30px;
+    padding:0.5vh 0.9vw; font-size:0.78vw; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }
+  .match-pill.hilal{ border-right:3px solid var(--hilal-blue); }
+  .match-pill.madrid{ border-right:3px solid var(--madrid-gold); }
+  .match-pill b{ color:#fff; }
+  .match-pill .time{ color:var(--gold-light); font-size:0.7vw; margin-right:0.6vw; }
+  .hidden{ display:none !important; }
+
+  #ticker{
+    position:absolute; bottom:0; left:0; width:100%; z-index:3;
+    background:rgba(5,7,12,0.5); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    border-top:1px solid var(--panel-border);
+    display:flex; align-items:center; gap:2vw; padding:0.6vh 2vw;
+    font-size:0.68vw; color:#c9c2b0; overflow:hidden; white-space:nowrap;
+  }
+  #ticker span.lg{ color:var(--gold-light); font-weight:700; margin-left:0.3vw; }
+  #ticker .sep{ opacity:0.4; margin:0 0.6vw; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="bg"></div>
+  <div id="tint"></div>
+  <div id="tint2"></div>
+  <div id="rain-wrap"></div>
+  <div id="veil"></div>
+
+  <div id="content">
+    <div id="top-row">
+      <div id="weather-block">
+        <div id="weather-icon">☀️</div>
+        <div>
+          <div id="weather-temp">--°</div>
+          <div id="weather-desc">جارٍ التحميل…</div>
+        </div>
+      </div>
+      <div id="clock-block">
+        <div id="clock">--:--<span id="ampm"></span></div>
+        <div id="date-greg">—</div>
+        <div id="date-hijri">—</div>
+      </div>
+    </div>
+
+    <div id="bottom-row">
+      <div id="prayer-panel">
+        <div class="label">الصلاة القادمة</div>
+        <div class="next" id="prayer-next">جارٍ التحميل…</div>
+        <div class="iqama" id="prayer-iqama"></div>
+      </div>
+
+      <div id="matches-block">
+        <div class="match-pill hilal hidden" id="hilal-pill"></div>
+        <div class="match-pill madrid hidden" id="madrid-pill"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="ticker" class="hidden"></div>
+
+  <div id="appdock">
+    <a class="app-btn prime" href="https://www.primevideo.com" target="_blank" rel="noopener" aria-label="Prime Video">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M6 4l13 8-13 8V4z" fill="#00A8E1"/></svg>
+      <span class="tip">Prime Video</span>
+    </a>
+    <a class="app-btn youtube" href="https://www.youtube.com/tv" target="_blank" rel="noopener" aria-label="YouTube">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M9 7.5l8 4.5-8 4.5v-9z" fill="#FF0033"/></svg>
+      <span class="tip">YouTube</span>
+    </a>
+    <a class="app-btn appletv" href="https://tv.apple.com" target="_blank" rel="noopener" aria-label="Apple TV">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="6" width="20" height="12" rx="3" stroke="#fff" stroke-width="1.6"/><path d="M10 9.5l5 2.5-5 2.5v-5z" fill="#fff"/></svg>
+      <span class="tip">Apple TV</span>
+    </a>
+    <a class="app-btn osn" href="https://osnplus.com" target="_blank" rel="noopener" aria-label="OSN">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.2" stroke="#fff" stroke-width="1.8"/><path d="M9 9.5l6 5" stroke="#fff" stroke-width="1.8"/></svg>
+      <span class="tip">OSN</span>
+    </a>
+    <div class="app-btn stremio" onclick="showToast('ستريميو تطبيق تلفزيون فقط — افتحه من الشاشة الرئيسية للتلفزيون')" aria-label="Stremio">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 3l7 4v10l-7 4-7-4V7l7-4z" stroke="#1fd1c4" stroke-width="1.6"/></svg>
+      <span class="tip">Stremio</span>
+    </div>
+    <div class="app-btn hotiptv" onclick="showToast('Hot IPTV تطبيق تلفزيون فقط — افتحه من الشاشة الرئيسية للتلفزيون')" aria-label="Hot IPTV">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="12" rx="2" stroke="#fff" stroke-width="1.6"/><path d="M8 20h8" stroke="#fff" stroke-width="1.6"/></svg>
+      <span class="tip">Hot IPTV</span>
+    </div>
+    <div class="app-btn leagues" onclick="openLeagues()" aria-label="الدوريات">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M6 4h12v3a6 6 0 01-6 6 6 6 0 01-6-6V4z" stroke="#e6c974" stroke-width="1.5"/><path d="M4 5H2v2a3 3 0 003 3M20 5h2v2a3 3 0 01-3 3" stroke="#e6c974" stroke-width="1.4"/><path d="M12 13v3m-3 3h6" stroke="#e6c974" stroke-width="1.5"/></svg>
+      <span class="tip">الدوريات</span>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <div id="leagues-overlay" class="hidden">
+    <div id="lg-header">
+      <div id="lg-title">الدوريات</div>
+      <div id="lg-close" onclick="closeLeagues()">✕</div>
+    </div>
+    <div id="lg-tabs"></div>
+    <div id="lg-body"></div>
+  </div>
+</div>
+
+<script>
+function pad(n){ return n.toString().padStart(2,'0'); }
+
+/* ---------------- CLOCK + DATE ---------------- */
+let hijriCache = null;
+let currentHour = 12;
+function updateClock(){
+  const now = new Date();
+  const h24 = now.getHours();
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  const ampm = h24 < 12 ? 'ص' : 'م';
+  document.getElementById('clock').innerHTML =
+    `${pad(h12)}:${pad(now.getMinutes())}<span id="ampm">${ampm}</span>`;
+  document.getElementById('date-greg').textContent =
+    now.toLocaleDateString('ar-SA-u-ca-gregory', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  if (hijriCache){
+    document.getElementById('date-hijri').textContent =
+      `${hijriCache.day} ${hijriCache.month} ${hijriCache.year} هـ`;
+  }
+  currentHour = h24 + now.getMinutes()/60;
+  updateVisuals();
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+/* ---------------- DAY/NIGHT + WEATHER OVERLAY (on real photo) ---------------- */
+let weatherMood = 'sunny'; // sunny | cloudy | dusty | rainy
+
+function updateVisuals(){
+  const hour = currentHour;
+  // time-of-day color multiply tint
+  let tColor, tOpacity;
+  if (hour >= 6 && hour < 16){ tColor='255,255,255'; tOpacity=0.08; }
+  else if (hour >= 16 && hour < 18.5){ tColor='255,150,90'; tOpacity=0.22; }
+  else if (hour >= 18.5 && hour < 20){ tColor='70,50,90'; tOpacity=0.42; }
+  else { tColor='15,20,45'; tOpacity=0.62; }
+  document.getElementById('tint').style.background = `rgba(${tColor},${tOpacity})`;
+
+  // weather mood overlay + photo filter
+  const bg = document.getElementById('bg');
+  const tint2 = document.getElementById('tint2');
+  if (weatherMood === 'sunny'){
+    bg.style.filter = 'saturate(1.15) brightness(1.05)';
+    tint2.style.background = 'rgba(0,0,0,0)';
+  } else if (weatherMood === 'cloudy'){
+    bg.style.filter = 'saturate(0.85) brightness(0.92) contrast(1.05)';
+    tint2.style.background = 'rgba(120,120,140,0.18)';
+  } else if (weatherMood === 'dusty'){
+    bg.style.filter = 'saturate(0.55) brightness(0.98) sepia(0.35)';
+    tint2.style.background = 'rgba(190,160,110,0.28)';
+  } else if (weatherMood === 'rainy'){
+    bg.style.filter = 'saturate(0.6) brightness(0.75) contrast(1.1)';
+    tint2.style.background = 'rgba(40,50,70,0.35)';
+  }
+}
+
+function renderRain(active){
+  const wrap = document.getElementById('rain-wrap');
+  wrap.innerHTML = '';
+  if (!active) return;
+  for (let i=0;i<70;i++){
+    const d = document.createElement('div'); d.className='rain';
+    d.style.left = (Math.random()*100)+'vw';
+    d.style.animationDuration = (0.45+Math.random()*0.5)+'s';
+    d.style.animationDelay = (Math.random()*1.5)+'s';
+    wrap.appendChild(d);
+  }
+}
+
+/* ---------------- TOAST (for non-web-launchable apps) ---------------- */
+let toastTimer = null;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> t.classList.remove('show'), 3500);
+}
+
+/* ---------------- WEATHER DATA ---------------- */
+function fetchWithTimeout(url, ms){
+  return Promise.race([
+    fetch(url),
+    new Promise((_,rej)=> setTimeout(()=>rej(new Error('timeout')), ms))
+  ]);
+}
+
+function applyWeather(tempC, code, isDay){
+  document.getElementById('weather-temp').textContent = Math.round(tempC) + '°';
+  let icon='☀️', desc='صافٍ', rain=false, mood='sunny';
+  if (code===0){ mood='sunny'; if(isDay===false){ icon='🌙'; desc='صافٍ'; } }
+  else if ([1,2].includes(code)){ icon='🌤️'; desc='غائم جزئياً'; mood='cloudy'; }
+  else if (code===3){ icon='☁️'; desc='غائم'; mood='cloudy'; }
+  else if ([45,48].includes(code)){ icon='🌫️'; desc='ضباب/غبار'; mood='dusty'; }
+  else if ([51,53,55,56,57,61,63,65,66,67,80,81,82].includes(code)){ icon='🌧️'; desc='أمطار'; rain=true; mood='rainy'; }
+  else if ([71,73,75,77,85,86].includes(code)){ icon='❄️'; desc='ثلوج'; mood='rainy'; }
+  else if ([95,96,99].includes(code)){ icon='⛈️'; desc='عاصفة رعدية'; rain=true; mood='rainy'; }
+  document.getElementById('weather-icon').textContent = icon;
+  document.getElementById('weather-desc').textContent = desc;
+  weatherMood = mood;
+  updateVisuals();
+  renderRain(rain);
+}
+
+// Maps wttr.in's WWO-style weather code to the Open-Meteo-style buckets applyWeather expects.
+function wwoCodeToOpenMeteo(wwo){
+  const n = Number(wwo);
+  const map = {
+    113:0, 116:2, 119:3, 122:3, 143:45, 248:45, 260:45,
+    176:61, 263:61, 266:61, 281:61, 284:61, 293:61, 296:61, 299:61, 302:61, 305:61, 308:61, 311:61, 314:61, 317:61, 320:71, 323:71, 326:71, 329:73, 332:73, 335:75, 338:75, 350:71, 353:80, 356:80, 359:65, 362:80, 365:80, 368:71, 371:73, 374:80, 377:80,
+    200:95, 386:95, 389:95, 392:96, 395:96
+  };
+  return map[n] !== undefined ? map[n] : 1;
+}
+
+async function loadWeatherFallback(){
+  const res = await fetchWithTimeout('https://wttr.in/Riyadh?format=j1', 8000);
+  const data = await res.json();
+  const cur = data.current_condition[0];
+  const tempC = Number(cur.temp_C);
+  const code = wwoCodeToOpenMeteo(cur.weatherCode);
+  applyWeather(tempC, code, undefined);
+}
+
+async function loadWeather(){
+  try{
+    const res = await fetchWithTimeout('https://api.open-meteo.com/v1/forecast?latitude=24.6333&longitude=46.7167&current_weather=true&timezone=Asia%2FRiyadh', 8000);
+    const data = await res.json();
+    const cw = data.current_weather;
+    if (!cw || typeof cw.temperature !== 'number') throw new Error('bad payload');
+    applyWeather(cw.temperature, cw.weathercode, cw.is_day === 1);
+  }catch(e){
+    try{
+      await loadWeatherFallback();
+    }catch(e2){
+      document.getElementById('weather-desc').textContent = 'تعذر تحميل الطقس';
+    }
+  }
+}
+loadWeather();
+setInterval(loadWeather, 15*60*1000);
+
+/* ---------------- PRAYER TIMES (next prayer only) ---------------- */
+const IQAMA_OFFSET = { Fajr:20, Dhuhr:10, Asr:10, Maghrib:10, Isha:10 };
+const PRAYER_AR = { Fajr:'الفجر', Dhuhr:'الظهر', Asr:'العصر', Maghrib:'المغرب', Isha:'العشاء' };
+function addMinutes(hhmm, mins){ const [h,m]=hhmm.split(':').map(Number); const d=new Date(); d.setHours(h,m+mins,0,0); return pad(d.getHours())+':'+pad(d.getMinutes()); }
+function toMinutes(hhmm){ const [h,m]=hhmm.split(':').map(Number); return h*60+m; }
+
+let prayerCache = null;
+async function loadPrayerTimes(){
+  try{
+    const res = await fetch('https://api.aladhan.com/v1/timingsByCity?city=Riyadh&country=SaudiArabia&method=4');
+    const data = await res.json();
+    const t = data.data.timings;
+    const hj = data.data.date.hijri;
+    hijriCache = { day:hj.day, month:hj.month.ar, year:hj.year };
+    const order = ['Fajr','Dhuhr','Asr','Maghrib','Isha'];
+    prayerCache = order.map(k=>({ key:k, name:PRAYER_AR[k], adhan:t[k].substring(0,5), iqama:addMinutes(t[k].substring(0,5), IQAMA_OFFSET[k]) }));
+    renderPrayer();
+    setInterval(renderPrayer, 30000);
+  }catch(e){ document.getElementById('prayer-next').textContent = 'تعذر تحميل مواقيت الصلاة'; }
+}
+function renderPrayer(){
+  if (!prayerCache) return;
+  const now = new Date(); const nowMin = now.getHours()*60+now.getMinutes();
+  let nextIdx = prayerCache.findIndex(p=>toMinutes(p.adhan) > nowMin);
+  if (nextIdx === -1) nextIdx = 0;
+  const next = prayerCache[nextIdx];
+  const diff = (toMinutes(next.adhan)-nowMin+1440)%1440;
+  document.getElementById('prayer-next').innerHTML = `<b>${next.name}</b> — ${next.adhan} (بعد ${Math.floor(diff/60)} س ${diff%60} د)`;
+  document.getElementById('prayer-iqama').textContent = `الإقامة: ${next.iqama}`;
+}
+loadPrayerTimes();
+
+/* ---------------- MATCHES (today only) ---------------- */
+const SPORTS_KEY='123';
+const TEAM_HILAL='136013', TEAM_MADRID='133738';
+const LEAGUES = { spl:['4668','روشن'], epl:['4328','الإنجليزي'], liga:['4335','الإسباني'], ucl:['4480','أبطال أوروبا'] };
+
+function riyadhDateStr(d){ return d.toLocaleDateString('en-CA', { timeZone:'Asia/Riyadh' }); }
+function isToday(ev){
+  try{
+    let iso = ev.strTimestamp ? ev.strTimestamp.replace(' ','T')+'Z' : `${ev.dateEvent}T${ev.strTime||'00:00:00'}Z`;
+    const d = new Date(iso);
+    return riyadhDateStr(d) === riyadhDateStr(new Date());
+  }catch(e){ return false; }
+}
+function fmtTime(ev){
+  try{
+    let iso = ev.strTimestamp ? ev.strTimestamp.replace(' ','T')+'Z' : `${ev.dateEvent}T${ev.strTime||'00:00:00'}Z`;
+    const d = new Date(iso);
+    return d.toLocaleTimeString('ar-SA', { hour:'2-digit', minute:'2-digit' });
+  }catch(e){ return ''; }
+}
+
+async function loadTeamNext(teamId, myName, elId){
+  const el = document.getElementById(elId);
+  try{
+    const res = await fetch(`https://www.thesportsdb.com/api/v1/json/${SPORTS_KEY}/eventsnext.php?id=${teamId}`);
+    const data = await res.json();
+    const ev = data.events && data.events[0];
+    if (!ev || !isToday(ev)){ el.classList.add('hidden'); el.innerHTML=''; return; }
+    const opp = (ev.strHomeTeam.includes(myName)) ? ev.strAwayTeam : ev.strHomeTeam;
+    el.innerHTML = `<b>${myName}</b> ضد ${opp} <span class="time">${fmtTime(ev)}</span>`;
+    el.classList.remove('hidden');
+  }catch(e){ el.classList.add('hidden'); }
+}
+
+async function loadTicker(){
+  const ticker = document.getElementById('ticker');
+  let parts = [];
+  for (const [key,[id,label]] of Object.entries(LEAGUES)){
+    try{
+      const res = await fetch(`https://www.thesportsdb.com/api/v1/json/${SPORTS_KEY}/eventsnextleague.php?id=${id}`);
+      const data = await res.json();
+      const events = (data.events || []).filter(isToday);
+      events.forEach(ev=>{
+        parts.push(`<span class="lg">${label}</span>${ev.strHomeTeam} × ${ev.strAwayTeam} — ${fmtTime(ev)}`);
+      });
+    }catch(e){}
+  }
+  if (parts.length){
+    ticker.innerHTML = parts.join('<span class="sep">|</span>');
+    ticker.classList.remove('hidden');
+  } else {
+    ticker.classList.add('hidden');
+    ticker.innerHTML = '';
+  }
+}
+
+function loadAllMatches(){
+  loadTeamNext(TEAM_HILAL, 'الهلال', 'hilal-pill');
+  loadTeamNext(TEAM_MADRID, 'ريال مدريد', 'madrid-pill');
+  loadTicker();
+}
+loadAllMatches();
+setInterval(loadAllMatches, 20*60*1000);
+
+/* ---------------- LEAGUES OVERLAY ---------------- */
+const LEAGUES_TAB = [
+  { id:'4668', name:'الدوري السعودي',      short:'السعودي' },
+  { id:'4328', name:'الدوري الإنجليزي',    short:'الإنجليزي' },
+  { id:'4335', name:'الدوري الإسباني',     short:'الإسباني' },
+  { id:'4332', name:'الدوري الإيطالي',     short:'الإيطالي' },
+  { id:'4334', name:'الدوري الفرنسي',      short:'الفرنسي' },
+  { id:'4480', name:'دوري أبطال أوروبا',   short:'الأبطال' },
+];
+const SPORTSDB_KEY = '123';
+let currentLeagueTab = null;
+const leagueCache = {};
+
+function currentSeasonStr(){
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth() + 1; // 1-12
+  return (m >= 7) ? `${y}-${y+1}` : `${y-1}-${y}`;
+}
+
+function openLeagues(){
+  const ov = document.getElementById('leagues-overlay');
+  ov.classList.remove('hidden');
+  if (!document.getElementById('lg-tabs').children.length){
+    const tabs = document.getElementById('lg-tabs');
+    LEAGUES_TAB.forEach(lg=>{
+      const el = document.createElement('div');
+      el.className = 'lg-tab';
+      el.textContent = lg.short;
+      el.onclick = () => selectLeagueTab(lg.id);
+      el.dataset.id = lg.id;
+      tabs.appendChild(el);
+    });
+  }
+  if (!currentLeagueTab) selectLeagueTab(LEAGUES_TAB[0].id);
+}
+function closeLeagues(){ document.getElementById('leagues-overlay').classList.add('hidden'); }
+
+function selectLeagueTab(id){
+  currentLeagueTab = id;
+  document.querySelectorAll('.lg-tab').forEach(t => t.classList.toggle('active', t.dataset.id === id));
+  renderLeagueBody(id);
+  if (!leagueCache[id]) loadLeagueFull(id);
+}
+
+function renderLeagueBody(id){
+  const body = document.getElementById('lg-body');
+  const data = leagueCache[id];
+  const name = LEAGUES_TAB.find(l=>l.id===id).name;
+  if (!data){
+    body.innerHTML = `<div class="lg-note">جارٍ تحميل بيانات ${name}…</div>`;
+    return;
+  }
+  body.innerHTML = '';
+
+  // Standings
+  const standSec = document.createElement('div');
+  standSec.className = 'lg-section';
+  standSec.innerHTML = `<div class="lg-section-title">ترتيب ${name}</div>`;
+  if (data.standings && data.standings.length){
+    let rows = data.standings.map((t,i)=>`
+      <tr class="${i<4?'top4':''}">
+        <td class="rank">${t.intRank||i+1}</td>
+        <td class="team-name">${t.strTeam}</td>
+        <td>${t.intPlayed}</td>
+        <td>${t.intWin}</td>
+        <td>${t.intDraw}</td>
+        <td>${t.intLoss}</td>
+        <td>${t.intGoalsFor}</td>
+        <td>${t.intGoalsAgainst}</td>
+        <td>${t.intGoalDifference}</td>
+        <td><b>${t.intPoints}</b></td>
+      </tr>`).join('');
+    standSec.innerHTML += `<table class="lg-table"><thead><tr>
+      <th>#</th><th>الفريق</th><th>لعب</th><th>ف</th><th>ت</th><th>خ</th><th>له</th><th>عليه</th><th>فرق</th><th>نقاط</th>
+    </tr></thead><tbody>${rows}</tbody></table>`;
+  } else {
+    standSec.innerHTML += `<div class="lg-note">تعذر تحميل جدول الترتيب حالياً.</div>`;
+  }
+  body.appendChild(standSec);
+
+  // Last round results
+  const pastSec = document.createElement('div');
+  pastSec.className = 'lg-section';
+  pastSec.innerHTML = `<div class="lg-section-title">نتائج آخر جولة</div>`;
+  if (data.past && data.past.length){
+    pastSec.innerHTML += `<div class="lg-fixture-list">${data.past.map(ev=>`
+      <div class="lg-fixture">
+        <div class="when">${ev.dateEvent||''}</div>
+        <div class="teams">${ev.strHomeTeam} <span class="score">${ev.intHomeScore ?? '-'} : ${ev.intAwayScore ?? '-'}</span> ${ev.strAwayTeam}</div>
+      </div>`).join('')}</div>`;
+  } else {
+    pastSec.innerHTML += `<div class="lg-note">لا تتوفر نتائج حالياً.</div>`;
+  }
+  body.appendChild(pastSec);
+
+  // Next round fixtures
+  const nextSec = document.createElement('div');
+  nextSec.className = 'lg-section';
+  nextSec.innerHTML = `<div class="lg-section-title">مباريات الجولة القادمة</div>`;
+  if (data.next && data.next.length){
+    nextSec.innerHTML += `<div class="lg-fixture-list">${data.next.map(ev=>`
+      <div class="lg-fixture">
+        <div class="when">${ev.dateEvent||''} ${ev.strTime ? ev.strTime.slice(0,5) : ''}</div>
+        <div class="teams">${ev.strHomeTeam} <span class="score">vs</span> ${ev.strAwayTeam}</div>
+      </div>`).join('')}</div>`;
+  } else {
+    nextSec.innerHTML += `<div class="lg-note">لا تتوفر مباريات قادمة حالياً.</div>`;
+  }
+  body.appendChild(nextSec);
+
+  // Top scorers
+  const scorerSec = document.createElement('div');
+  scorerSec.className = 'lg-section';
+  scorerSec.innerHTML = `<div class="lg-section-title">الهدافون</div>`;
+  if (data.scorers && data.scorers.length){
+    scorerSec.innerHTML += `<div class="lg-scorer-list">${data.scorers.map(p=>`
+      <div class="lg-scorer-row"><span>${p.strPlayer} <span class="lg-note">(${p.strTeam||''})</span></span><span class="goals">${p.intGoals||p.intScore||''}</span></div>`).join('')}</div>`;
+  } else {
+    scorerSec.innerHTML += `<div class="lg-note">بيانات الهدافين وصناع اللعب غير متوفرة من مصدر البيانات المجاني حالياً — تحتاج مفتاح API مدفوع من TheSportsDB لعرضها بدقة.</div>`;
+  }
+  body.appendChild(scorerSec);
+}
+
+async function loadLeagueFull(id){
+  const season = currentSeasonStr();
+  const result = { standings:null, past:null, next:null, scorers:null };
+  try{
+    const r = await fetchWithTimeout(`https://www.thesportsdb.com/api/v1/json/${SPORTSDB_KEY}/lookuptable.php?l=${id}&s=${season}`, 9000);
+    const d = await r.json();
+    result.standings = d.table || null;
+  }catch(e){}
+  try{
+    const r = await fetchWithTimeout(`https://www.thesportsdb.com/api/v1/json/${SPORTSDB_KEY}/eventspastleague.php?id=${id}`, 9000);
+    const d = await r.json();
+    const events = (d.events||[]).sort((a,b)=> new Date(b.dateEvent) - new Date(a.dateEvent));
+    if (events.length){
+      const latestRound = events[0].intRound;
+      result.past = events.filter(e=> e.intRound === latestRound);
+    }
+  }catch(e){}
+  try{
+    const r = await fetchWithTimeout(`https://www.thesportsdb.com/api/v1/json/${SPORTSDB_KEY}/eventsnextleague.php?id=${id}`, 9000);
+    const d = await r.json();
+    const events = (d.events||[]).sort((a,b)=> new Date(a.dateEvent) - new Date(b.dateEvent));
+    if (events.length){
+      const nextRound = events[0].intRound;
+      result.next = events.filter(e=> e.intRound === nextRound);
+    }
+  }catch(e){}
+  try{
+    const r = await fetchWithTimeout(`https://www.thesportsdb.com/api/v1/json/${SPORTSDB_KEY}/lookuptopscorers.php?l=${id}&s=${season}`, 9000);
+    const d = await r.json();
+    result.scorers = (d.topscorers || d.scorers || []).slice(0,10);
+  }catch(e){}
+
+  leagueCache[id] = result;
+  if (currentLeagueTab === id) renderLeagueBody(id);
+}
+</script>
+</body>
+</html>
